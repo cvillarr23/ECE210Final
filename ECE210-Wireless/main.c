@@ -26,11 +26,11 @@
  *****************************************************************************/
 struct weapon {
 	char *name;
-	short damageDisable;
-	short damageNorm;
-	short breachChance;
-	short fireChance;
-	short cooldown;
+	uint8_t damageDisable;
+	uint8_t damageNorm;
+	uint8_t breachChance;
+	uint8_t fireChance;
+	uint8_t cooldown;
 	uint8_t cost;
 	uint8_t energyCost;
 	uint8_t shotCount;
@@ -104,7 +104,7 @@ bool checkCooldown(clock_t startTime, clock_t weaponCD){
 // setFire()
 // input: chance of fire
 // output: if fire occured
-bool setFire(short chance) {
+bool setFire(uint8_t chance) {
 	if(rand() % 100 <= chance) {
 		status.fireCount += 1;
 		return true;
@@ -113,14 +113,14 @@ bool setFire(short chance) {
 // setBreach()
 // input: chance of breach
 // output: if breach occured
-bool setBreach(short chance) {
+bool setBreach(uint8_t chance) {
 	if(rand() % 100 <= chance) {
 		status.breach += 1;
 		return true;
 	}
 }
 
-bool didHit(short chance) {
+bool didHit(uint8_t chance) {
 	if(rand() % 100 <= chance) {
 		return true;
 	}	
