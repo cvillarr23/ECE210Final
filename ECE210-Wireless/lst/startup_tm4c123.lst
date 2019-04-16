@@ -1230,18 +1230,19 @@ ARM Macro Assembler    Page 19
               00000000 
               00000000 
 Command Line: --debug --xref --diag_suppress=9931 --cpu=Cortex-M4.fp --apcs=int
-erwork --depend=.\obj\startup_tm4c123.d -o.\obj\startup_tm4c123.o -IF:\ECE210\E
-CE210-Wireless\RTE -IC:\Keil_v5\ARM\PACK\ARM\CMSIS\4.5.0\CMSIS\Include -IC:\Kei
-l_v5\ARM\PACK\Keil\TM4C_DFP\1.1.0\Device\Include\TM4C123 --predefine="__EVAL SE
+erwork --depend=.\obj\startup_tm4c123.d -o.\obj\startup_tm4c123.o -I.\RTE\_ECE3
+53-Test-Code -IC:\Users\cvill\AppData\Local\Arm\Packs\ARM\CMSIS\5.5.1\CMSIS\Cor
+e\Include -IC:\Users\cvill\AppData\Local\Arm\Packs\Keil\TM4C_DFP\1.1.0\Device\I
 
 
 
 ARM Macro Assembler    Page 20 
 
 
-TA 1" --predefine="__MICROLIB SETA 1" --predefine="__UVISION_VERSION SETA 518" 
---predefine="_RTE_ SETA 1" --predefine="TM4C123GH6PM SETA 1" --list=.\lst\start
-up_tm4c123.lst RTE\Device\TM4C123GH6PM\startup_TM4C123.s
+nclude\TM4C123 --predefine="__EVAL SETA 1" --predefine="__MICROLIB SETA 1" --pr
+edefine="__UVISION_VERSION SETA 527" --predefine="_RTE_ SETA 1" --predefine="TM
+4C123GH6PM SETA 1" --list=.\lst\startup_tm4c123.lst RTE\Device\TM4C123GH6PM\sta
+rtup_TM4C123.s
 
 
 

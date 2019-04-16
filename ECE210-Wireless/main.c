@@ -19,8 +19,8 @@
 
 #define UP_BUTTON 0x01
 
-#define LOCAL_ID     0x01
-#define REMOTE_ID    0x00
+#define LOCAL_ID     0x63
+#define REMOTE_ID    0x62
 /******************************************************************************
  * Structs
  *****************************************************************************/
@@ -81,8 +81,9 @@ struct weapon weaponList[11] = {
 	{"NULLWEAPON",       0,  0,   0,   0,  0,   0,  0, 0,   0}
 };
 
-struct ship myShip = {20, 2, 8, 11, 11, 11};
+struct ship myShip = {20, 2, 8, 10, 10, 10};
 struct shipStatus status = {100, false, 0, 0, false, 0, 2};
+bool STATUS_DEAD = false;
 
 
 
@@ -108,7 +109,7 @@ bool setFire(uint8_t chance) {
 	if(rand() % 100 <= chance) {
 		status.fireCount += 1;
 		return true;
-	}
+	} else { return false;}
 }
 // setBreach()
 // input: chance of breach
@@ -117,24 +118,32 @@ bool setBreach(uint8_t chance) {
 	if(rand() % 100 <= chance) {
 		status.breach += 1;
 		return true;
-	}
+	} else { return false;}
+	
 }
-
+// didHit()
+// input: chance of breach
+// output: if breach occured
 bool didHit(uint8_t chance) {
 	if(rand() % 100 <= chance) {
 		return true;
-	}	
+	}	else { return false;}
 }
 
 uint8_t doAttack(struct weapon weapon ) {
 	for(uint8_t i = 0; i < weapon.shotCount; i++) {	// for each shot calculate effects
 		if(didHit(weapon.accuracy)) {
 			if(status.currShield == 0){
+				// TODO: Flash lights for damage
 				status.disableTime = weapon.damageDisable;
 				myShip.health -= weapon.damageNorm;
 				status.breach = setBreach(weapon.breachChance);
 				status.fire = setFire(weapon.fireChance);
+				if(myShip.health == 0 || myShip.health > 24) {
+					STATUS_DEAD = true;
+				}
 			} else {
+				// TODO: Flash lights for shield 
 				status.disableTime += weapon.damageDisable; // cooldown timer for recharge
 				status.currShield -= weapon.damageDisable;
 				status.currShield -= weapon.damageNorm;
@@ -193,63 +202,90 @@ main(void)
 
   while(1)
   {
+	  
     // weapon 1 cooldown
-		if(!canFire1) {
-			canFire1 = checkCooldown(startCD1, weaponCD1);
-		}
-		// weapon 2 cooldown
-		if(!canFire2) {
-			canFire2 = checkCooldown(startCD2, weaponCD2);
-		}
-		// weapon 3 cooldown
-		if(!canFire3) {
-			canFire3 = checkCooldown(startCD3, weaponCD3);
-		}
-		// shield cooldown
-		if(!canRecharge) {
-			canRecharge = checkCooldown(rechargeCD, status.disableTime);
-			if(canRecharge) { //reset timer
-				status.disableTime = 0;
-			}
-		}
-		// TODO: Oxygen Ticks
-		// TODO: Recieve Attacks
-		// TODO: Implement Repair
-		// TODO: 
+	if(ece210_wireless_data_avaiable()) {
+		uint32_t catchData = ece210_wireless_get();
 		
-		
-		if(btn_left_pressed()) {
-			if(canFire1){
-				startCD1 = clock();
-				// Insert weapon action code
-				canFire1 = false;
-			}
+		if(catchData < 11) { // < 11 means it is an attack
+			doAttack(weaponList[catchData]);
+			ece210_lcd_add_msg(weaponList[catchData].name, TERMINAL_ALIGN_CENTER, LCD_COLOR_RED);
+			
+		} else if(catchData == 99) {	//99 indicates game over
+			
 		}
-		if(btn_up_pressed()) {
-			if(canFire2){
-				startCD2 = clock();
-				// Insert weapon action code
-				canFire2 = false;
-			}
+	if(STATUS_DEAD == true) {
+		ece210_lcd_add_msg("YOU LOSE", TERMINAL_ALIGN_CENTER, LCD_COLOR_RED);
+		ece210_wireless_send(99); // 99 indicates game over
+		break;
+	}
+			
+	}
+	if(!canFire1) {
+		canFire1 = checkCooldown(startCD1, weaponCD1);
+	}
+	// weapon 2 cooldown
+	if(!canFire2) {
+		canFire2 = checkCooldown(startCD2, weaponCD2);
+	}
+	// weapon 3 cooldown
+	if(!canFire3) {
+		canFire3 = checkCooldown(startCD3, weaponCD3);
+	}
+	// shield cooldown
+	if(!canRecharge) {
+		canRecharge = checkCooldown(rechargeCD, status.disableTime);
+		if(canRecharge) { //reset timer
+			status.disableTime = 0;
 		}
-		if(btn_right_pressed()) {
-			if(canFire3){
-				startCD3 = clock();
-				// Insert weapon action code
-				canFire3 = false;
-			}
+	}
+	// TODO: Oxygen Ticks
+	// TODO: Recieve Attacks-------- Done?
+	// TODO: Implement Repair
+	// TODO: 
+	bool didRecieve;
+	if(btn_down_pressed()) {
+		ece210_wireless_send(myShip.weapon1);
+	}
+		
+	
+	
+		
+	}
+	if(btn_left_pressed()) {
+		if(canFire1){
+			startCD1 = clock();
+			ece210_wireless_send(myShip.weapon1);
+			canFire1 = false;
 		}
-		
-		if(status.disableTime > 0) { //disable time set
-			canRecharge = false;
-			rechargeCD = clock();
+	}
+	if(btn_up_pressed()) {
+		if(canFire2){
+			startCD2 = clock();
+			// Insert weapon action code
+			ece210_wireless_send(myShip.weapon2);
+			canFire2 = false;
 		}
-		
-		
+	}
+	if(btn_right_pressed()) {
+		if(canFire3){
+			startCD3 = clock();
+			// Insert weapon action code
+			ece210_wireless_send(myShip.weapon3);
+			canFire3 = false;
+		}
+	}
+	
+	if(status.disableTime > 0) { //disable time set
+		canRecharge = false;
+		rechargeCD = clock();
+	}
+	
+	
   }
 	
 
 	
-}
+
 
 
