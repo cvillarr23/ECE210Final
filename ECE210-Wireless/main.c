@@ -89,7 +89,7 @@ Weapon weaponList[11] = {
 };
 
 Ship myShip = {24, 4, 8, 1, 2, 6};
-ShipStatus status = {100, 0, 0, 0, 2, 0};
+ShipStatus status = {100, 0, 0, 0, 4, 0};
 bool STATUS_DEAD = false;
 uint8_t buttons;
 uint8_t LEDNum = 7;
@@ -154,7 +154,7 @@ uint8_t doAttack(Weapon weapon ) {
 		if(didHit(weapon.accuracy)) {
 			if(status.currShield == 0){
 				// TODO: Flash lights for damage
-				status.disableTime += weapon.damageDisable * 4;
+				status.disableTime += weapon.damageDisable;
 				myShip.health -= weapon.damageNorm;
 				updateHealth(weapon.damageNorm);
 				char printStr[32];
@@ -166,6 +166,7 @@ uint8_t doAttack(Weapon weapon ) {
 				setFire(weapon.fireChance);
 				if(myShip.health == 0 || myShip.health > 24) {
 					STATUS_DEAD = true;
+					break;
 				}
 			} else {
 				// TODO: Flash lights for shield
@@ -174,12 +175,13 @@ uint8_t doAttack(Weapon weapon ) {
 				status.currShield -= weapon.damageDisable;
 				status.currShield -= weapon.damageNorm;
 				char printStr[32];
-				sprintf(printStr, "Shield Status:  %d", status.currShield);
-				ece210_lcd_add_msg(printStr,TERMINAL_ALIGN_CENTER,LCD_COLOR_WHITE);
-				if(status.currShield > 2 || status.currShield < 0){	// make sure shield isn't negative
+				
+				if(status.currShield > myShip.shield || status.currShield < 0){	// make sure shield isn't negative
 					status.currShield = 0;
 					
 				}
+				sprintf(printStr, "Shield Status:  %d", status.currShield);
+				ece210_lcd_add_msg(printStr,TERMINAL_ALIGN_CENTER,LCD_COLOR_WHITE);
 				if(status.currShield == 0) {
 					ece210_tiva_rgb_write(0x00);
 				}
@@ -196,10 +198,10 @@ uint8_t doAttack(Weapon weapon ) {
 void tickOxygen() {
 	status.oxygen -= status.fireCount * o2FireMultiplier;
 	status.oxygen -= status.breachCount * o2BreachMultiplier;
-//	if(status.oxygen == 0){
-//		ece210_wireless_send(99);
-//		STATUS_DEAD = true;
-//	}
+	if(status.oxygen == 0){
+		ece210_wireless_send(99);
+		STATUS_DEAD = true;
+	}
 }
 
 
@@ -264,7 +266,7 @@ uint8_t chooseWeapon(uint8_t slot) {
 	uint8_t weaponIndex = 0;
 	bool weaponChosen = false;
 	char printStr[32];
-	sprintf(printStr, "Press Up to choose weapon for slot %d", slot);
+	sprintf(printStr, "Press Down to choose weapon for slot %d", slot);
 	ece210_lcd_add_msg(printStr, TERMINAL_ALIGN_CENTER,LCD_COLOR_RED);
 	while(!weaponChosen) {
 		if(AlertButtons){
@@ -300,6 +302,12 @@ uint8_t chooseWeapon(uint8_t slot) {
 					sprintf(printStr, "Accuracy:  %d", weaponList[weaponIndex].accuracy);
 					ece210_lcd_add_msg(printStr, TERMINAL_ALIGN_LEFT, LCD_COLOR_WHITE);
 					sprintf(printStr, "Shot Count:  %d", weaponList[weaponIndex].shotCount);
+					ece210_lcd_add_msg(printStr, TERMINAL_ALIGN_LEFT, LCD_COLOR_WHITE);
+					sprintf(printStr, "Disable Time:  %d", weaponList[weaponIndex].damageDisable);
+					ece210_lcd_add_msg(printStr, TERMINAL_ALIGN_LEFT, LCD_COLOR_WHITE);
+					sprintf(printStr, "Fire Chance:  %d", weaponList[weaponIndex].fireChance);
+					ece210_lcd_add_msg(printStr, TERMINAL_ALIGN_LEFT, LCD_COLOR_WHITE);
+					sprintf(printStr, "Breach Chance:  %d", weaponList[weaponIndex].breachChance);
 					ece210_lcd_add_msg(printStr, TERMINAL_ALIGN_LEFT, LCD_COLOR_WHITE);
 					ece210_lcd_add_msg("", TERMINAL_ALIGN_LEFT, LCD_COLOR_WHITE);
 					ece210_lcd_add_msg("", TERMINAL_ALIGN_LEFT, LCD_COLOR_WHITE);
@@ -350,7 +358,7 @@ main(void)
 
 
 	
-	uint8_t tickInterval = 20;	// 5 sec
+	uint8_t tickInterval = 16;	// 4 sec
 	uint8_t tickCnt = 0;
 	
 	ece210_lcd_add_msg("CD Variable Init Complete",TERMINAL_ALIGN_CENTER,LCD_COLOR_BLUE);

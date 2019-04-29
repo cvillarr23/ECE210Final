@@ -29,20 +29,20 @@ Project File Date:  04/29/2019
 Rebuild target 'ECE353-Test-Code'
 compiling ShipFunc.c...
 assembling startup_TM4C123.s...
-compiling system_TM4C123.c...
 compiling lab_buttons.c...
+compiling system_TM4C123.c...
 compiling main.c...
-main.c(177): warning:  #186-D: pointless comparison of unsigned integer with zero
-  				if(status.currShield > 2 || status.currShield < 0){	// make sure shield isn't negative
-main.c(319): warning:  #177-D: variable "msg"  was declared but never referenced
+main.c(179): warning:  #186-D: pointless comparison of unsigned integer with zero
+  				if(status.currShield > myShip.shield || status.currShield < 0){	// make sure shield isn't negative
+main.c(339): warning:  #177-D: variable "msg"  was declared but never referenced
   	char msg[80];
-main.c(320): warning:  #177-D: variable "rx_data"  was declared but never referenced
+main.c(340): warning:  #177-D: variable "rx_data"  was declared but never referenced
   	uint32_t rx_data;
-main.c(321): warning:  #177-D: variable "tx_data"  was declared but never referenced
+main.c(341): warning:  #177-D: variable "tx_data"  was declared but never referenced
   	uint32_t tx_data;
 main.c: 4 warnings, 0 errors
 linking...
-Program Size: Code=20916 RO-data=5004 RW-data=280 ZI-data=6648  
+Program Size: Code=21164 RO-data=5004 RW-data=280 ZI-data=6648  
 ".\obj\ece353_base_project.axf" - 0 Error(s), 4 Warning(s).
 
 <h2>Software Packages used:</h2>
@@ -72,7 +72,7 @@ Package Vendor: Keil
       Include file:  Device\Include\TM4C123\TM4C123.h
       Source file:   Device\Source\ARM\startup_TM4C123.s
       Source file:   Device\Source\system_TM4C123.c
-Build Time Elapsed:  00:00:00
+Build Time Elapsed:  00:00:01
 </pre>
 </body>
 </html>
