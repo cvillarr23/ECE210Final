@@ -53,8 +53,7 @@ typedef struct ShipStatus {
 	uint8_t disable;
 	uint8_t fireCount;
 	uint8_t currShield;
-	clock_t disableTime;
-	//clock_t disableWeapon;
+	uint8_t disableTime;
 } ShipStatus;
 
 
@@ -69,39 +68,41 @@ typedef struct Ship {
 //*****************************************************************************
 //*****************************************************************************
 
-
+void updateHealth(uint8_t damage);
 
 /******************************************************************************
  * Global Variables
  *****************************************************************************/
 Weapon weaponList[11] = {
 // NAME							 dis norm brc fire cd cst ecst sCnt acc
-	{"Ion Cannon",			 2,	0,	 0,	50,	4,	20,	1, 1,	85},
-	{"Ion Burst",				1,	0,	 0,	70,	5,	20,	2, 3,	85},
-	{"Missile Launcher", 0,	3,	60,	20,	4,	20,	3, 1,	85},
-	{"Flak Launcher",		0,	1,	50,	 0,	7,	20,	4, 7,	85},
-	{"Beam Laser",			 0,	4,	 0,	70,	4,	20,	3, 1, 100},
-	{"Burst Laser",			0,	2,	 0,	30,	4,	20,	1, 2,	85},
-	{"Hull Bomb",				0,	2,	90,	20,	4,	20,	2, 1,	85},
-	{"Scatter Laser",		0,	1,	 0,	15,	5,	20,	4, 6,	60},
-	{"Chain Missile",		0,	2,	40,	10,	7,	20,	4, 3,	80},
-	{"Ion Beam",				 4,	0,	 0,	80,	6,	20,	2, 1, 100},
+	{"Ion Cannon",			 8,	0,	 0,	50,	16,	20,	1, 1,	85},
+	{"Ion Burst",				4,	0,	 0,	70,	20,	20,	2, 3,	85},
+	{"Missile Launcher", 0,	3,	60,	20,	16,	20,	3, 1,	85},
+	{"Flak Launcher",		0,	1,	50,	 0,	28,	20,	4, 7,	85},
+	{"Beam Laser",			 0,	4,	 0,	70,	28,	20,	3, 1, 100},
+	{"Burst Laser",			0,	2,	 0,	30,	16,	20,	1, 2,	85},
+	{"Hull Bomb",				0,	2,	90,	20,	16,	20,	2, 1,	85},
+	{"Scatter Laser",		0,	1,	 0,	15,	20,	20,	4, 6,	60},
+	{"Chain Missile",		0,	2,	40,	10,	28,	20,	4, 3,	80},
+	{"Ion Beam",				 16,	0,	 0,	80,	24,	20,	2, 1, 100},
 	{"NULLWEAPON",			 0,	0,	 0,	 0,	0,	 0,	0, 0,	 0}
 };
 
-Ship myShip = {24, 2, 8, 1, 2, 6};
+Ship myShip = {24, 4, 8, 1, 2, 6};
 ShipStatus status = {100, 0, 0, 0, 2, 0};
 bool STATUS_DEAD = false;
 uint8_t buttons;
+uint8_t LEDNum = 7;
 
 
 uint8_t convertValuesHex[9] = {0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
 uint8_t convertValuesInt[12] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 99};
 
-uint8_t greenLight[] = {0x04, 0xFF, 0x00};
+uint8_t greenLight[] = {0x06, 0x66, 0x00};
 uint8_t redLight[] = {0xFF, 0x00, 0x00};
 uint8_t yellowLight[] = {0xFF, 0xFF, 0x00};
 uint8_t blueLight[] = {0x00, 0xFF, 0xFF};
+uint8_t currColor[3] = {0xFF, 0xFF, 0x00};
 
 uint8_t o2FireMultiplier = 1;
 uint8_t o2BreachMultiplier = 2;
@@ -111,21 +112,6 @@ bool wirelessOn = false;
 //*****************************************************************************
 //*****************************************************************************
 
-// checkCooldown()
-// input: start of CD
-// input: weapon CD
-// output: if the weapon is off CD
-bool checkCooldown(clock_t endTime){
-	
-		if(clock() >= endTime ){
-			ece210_lcd_add_msg("NOT ON COOLDOWN",TERMINAL_ALIGN_CENTER,LCD_COLOR_BLUE);
-			return true;
-		} else { 
-			ece210_lcd_add_msg("ON COOLDOWN",TERMINAL_ALIGN_CENTER,LCD_COLOR_RED);
-			return false;
-		}
-}
-
 
 // setFire()
 // input: chance of fire
@@ -133,6 +119,7 @@ bool checkCooldown(clock_t endTime){
 bool setFire(uint8_t chance) {
 	if(rand() % 100 <= chance) {
 		status.fireCount += 1;
+		ece210_lcd_add_msg("There was a fire on board!",TERMINAL_ALIGN_CENTER,LCD_COLOR_ORANGE);
 		return true;
 	} else { return false;}
 }
@@ -142,6 +129,7 @@ bool setFire(uint8_t chance) {
 bool setBreach(uint8_t chance) {
 	if(rand() % 100 <= chance) {
 		status.breachCount += 1;
+		ece210_lcd_add_msg("There was a hull breach!",TERMINAL_ALIGN_CENTER,LCD_COLOR_ORANGE);
 		return true;
 	} else { return false;}
 }
@@ -166,8 +154,9 @@ uint8_t doAttack(Weapon weapon ) {
 		if(didHit(weapon.accuracy)) {
 			if(status.currShield == 0){
 				// TODO: Flash lights for damage
-				status.disableTime += weapon.damageDisable * CLOCKS_PER_SEC;
+				status.disableTime += weapon.damageDisable * 4;
 				myShip.health -= weapon.damageNorm;
+				updateHealth(weapon.damageNorm);
 				char printStr[32];
 				sprintf(printStr, "Took %d damage", weapon.damageNorm); 
 				ece210_lcd_add_msg(printStr,TERMINAL_ALIGN_CENTER,LCD_COLOR_RED);
@@ -180,46 +169,25 @@ uint8_t doAttack(Weapon weapon ) {
 				}
 			} else {
 				// TODO: Flash lights for shield
-				status.disableTime += weapon.damageDisable * CLOCKS_PER_SEC; // cooldown timer for recharge
+				ece210_lcd_add_msg("Hit Shield!" ,TERMINAL_ALIGN_CENTER,LCD_COLOR_RED);
+				status.disableTime += weapon.damageDisable;
 				status.currShield -= weapon.damageDisable;
 				status.currShield -= weapon.damageNorm;
-				if(status.currShield > 2){	// make sure shield isn't negative
+				char printStr[32];
+				sprintf(printStr, "Shield Status:  %d", status.currShield);
+				ece210_lcd_add_msg(printStr,TERMINAL_ALIGN_CENTER,LCD_COLOR_WHITE);
+				if(status.currShield > 2 || status.currShield < 0){	// make sure shield isn't negative
 					status.currShield = 0;
+					
+				}
+				if(status.currShield == 0) {
+					ece210_tiva_rgb_write(0x00);
 				}
 			}
 		}
 	}
 	return weapon.cooldown;
 }
-
-// updateHealthBar()
-// input:
-// output:
-// updates top 8 lights for health
-void updateHealthBar() {
-	
-	uint8_t health = myShip.health;
-	uint8_t shield = status.currShield;
-	for(uint8_t i = 0; i < 8; i++) {
-		ece210_lcd_add_msg("Iterating health bar",TERMINAL_ALIGN_CENTER,LCD_COLOR_RED);
-		
-		if(health >= 3) {
-			health -=3;
-			ece210_ws2812b_write(i, greenLight[0], greenLight[1], greenLight[2] );
-		} else if(health == 2) {
-			health = 0;
-			ece210_ws2812b_write(i, yellowLight[0], yellowLight[1], yellowLight[2]);
-		} else if(health == 1) {
-			health = 0;
-			ece210_ws2812b_write(i, redLight[0], redLight[1], redLight[2]);
-		} else if(health == 0 || health > 24) {
-			ece210_ws2812b_write(i, lightOFF, lightOFF, lightOFF);
-		}
-	}
-
-	
-}
-
 
 // tickOxygen()
 // input:
@@ -228,31 +196,68 @@ void updateHealthBar() {
 void tickOxygen() {
 	status.oxygen -= status.fireCount * o2FireMultiplier;
 	status.oxygen -= status.breachCount * o2BreachMultiplier;
-
+//	if(status.oxygen == 0){
+//		ece210_wireless_send(99);
+//		STATUS_DEAD = true;
+//	}
 }
 
 
 
 
 // tickFireDamage()
-// input:
-// output:
 // ticks fire based on # of fires
 void tickFireDamage() {
 	myShip.health -= status.fireCount;
 }
 
-bool tickCheck(clock_t rechargeTime, clock_t tickTimer) {
-	if(status.currShield < myShip.shield && checkCooldown(status.disableTime)) {
-		status.disableTime = clock() + rechargeTime;
+
+// tickCheck()
+// tick fire, oxygen, and shield recharge
+bool tickCheck() {
+	if(status.currShield < myShip.shield) {
 		status.currShield += 1;
+		char printStr[32];
+		ece210_tiva_rgb_write(0x0F);
+		
+		sprintf(printStr, "Shield Recharged to:  %d", status.currShield);
+		ece210_lcd_add_msg(printStr,TERMINAL_ALIGN_CENTER,LCD_COLOR_WHITE);
+		
 	}
-//	if(checkCooldown(tickTimer)) {
-//		tickFireDamage();
-//		tickOxygen();
-//		return true;
-//	}
-	return false;
+	tickFireDamage();
+	tickOxygen();
+
+	return true;
+}
+
+void updateHealth(uint8_t damage) {
+	
+	
+	for(uint8_t i = 0; i < damage; i++) {
+		ece210_ws2812b_write(LEDNum, currColor[0], currColor[1], currColor[2]);
+		if(LEDNum == 0) {
+			LEDNum = 7;
+			if(myShip.health > 16) {
+				currColor[0] = yellowLight[0];
+				currColor[1] = yellowLight[1];
+				currColor[2] = yellowLight[2];
+				
+			} else if(myShip.health > 8) {
+				currColor[0] = redLight[0];
+				currColor[1] = redLight[1];
+				currColor[2] = redLight[2];
+				
+			} else if(myShip.health > 0) {
+				currColor[0] = 0x00;
+				currColor[1] = 0x00;
+				currColor[2] = 0x00;
+				
+			}
+		} else {
+			LEDNum -= 1;
+		}
+	}
+
 }
 
 uint8_t chooseWeapon(uint8_t slot) {
@@ -277,6 +282,8 @@ uint8_t chooseWeapon(uint8_t slot) {
 					sprintf(printStr, "Accuracy:  %d", weaponList[weaponIndex].accuracy);
 					ece210_lcd_add_msg(printStr, TERMINAL_ALIGN_LEFT, LCD_COLOR_WHITE);
 					sprintf(printStr, "Shot Count:  %d", weaponList[weaponIndex].shotCount);
+					ece210_lcd_add_msg(printStr, TERMINAL_ALIGN_LEFT, LCD_COLOR_WHITE);
+					sprintf(printStr, "Disable Time:  %d", weaponList[weaponIndex].damageDisable / 4);
 					ece210_lcd_add_msg(printStr, TERMINAL_ALIGN_LEFT, LCD_COLOR_WHITE);
 					ece210_lcd_add_msg("", TERMINAL_ALIGN_LEFT, LCD_COLOR_WHITE);
 					ece210_lcd_add_msg("", TERMINAL_ALIGN_LEFT, LCD_COLOR_WHITE);
@@ -304,7 +311,7 @@ uint8_t chooseWeapon(uint8_t slot) {
 		}
 	}
 	
-	return weaponChosen;
+	return weaponIndex;
 }
 
 
@@ -319,6 +326,7 @@ main(void)
 
 	// Initialize Ship
 	
+	// Turn on lights
 
 	char msg[80];
 	uint32_t rx_data;
@@ -327,22 +335,25 @@ main(void)
 
 	ece210_initialize_board();
 	
+		for(uint8_t i = 0; i < 8; i++) {	
+		ece210_ws2812b_write(i, greenLight[0], greenLight[1], greenLight[2] );
+	}
+	ece210_tiva_rgb_write(0x0F);
+	
 	ece210_lcd_add_msg("Initializing....",TERMINAL_ALIGN_CENTER,LCD_COLOR_BLUE);
 //***********************************************************************
-//****************	INITIALIZE COOLDOWN VARIABLES ***********************
-	clock_t weaponCD1 = weaponList[myShip.weapon2].cooldown * CLOCKS_PER_SEC;	// Cooldowns
-	clock_t weaponCD2 = weaponList[myShip.weapon2].cooldown * CLOCKS_PER_SEC;
-	clock_t weaponCD3 = weaponList[myShip.weapon3].cooldown * CLOCKS_PER_SEC;
-	ece210_lcd_add_msg("Weapon CD Init Complete",TERMINAL_ALIGN_CENTER,LCD_COLOR_BLUE);
+//****************	INITIALIZE COOLDOWN VARIABLES ***********************	
+	uint8_t weapCnt1 = 0;			//	Cooldown counters, based of 500ms wait between loops
+	uint8_t weapCnt2 = 0;
+	uint8_t weapCnt3 = 0;
 	
-	clock_t shieldRecharge = 5 * CLOCKS_PER_SEC;
-	clock_t endTime1;														// When weapons can be used again
-	clock_t endTime2;
-	clock_t endTime3;
-	clock_t tickInterval = 10 * CLOCKS_PER_SEC; // every 10 sec tick ox + fire
-	clock_t tickTimer = clock() + tickInterval;	// Used to indicate when to tick everything
-		
-	ece210_lcd_add_msg("Start CD complete",TERMINAL_ALIGN_CENTER,LCD_COLOR_BLUE);
+
+
+	
+	uint8_t tickInterval = 20;	// 5 sec
+	uint8_t tickCnt = 0;
+	
+	ece210_lcd_add_msg("CD Variable Init Complete",TERMINAL_ALIGN_CENTER,LCD_COLOR_BLUE);
 	
 	myShip.weapon1 = chooseWeapon(1);
 	myShip.weapon2 = chooseWeapon(2);
@@ -364,7 +375,7 @@ main(void)
 	} while(!wirelessOn);
 	ece210_lcd_add_msg("Wireless Init Complete",TERMINAL_ALIGN_CENTER,LCD_COLOR_BLUE);
 
-	clock_t tickStart = clock();
+	
 	ece210_lcd_add_msg("Entered while loop",TERMINAL_ALIGN_CENTER,LCD_COLOR_BLUE);
 	
 
@@ -372,22 +383,15 @@ main(void)
 // ***********************************************************************************
 //																RECIEVE DATA CYCLE
 // ***********************************************************************************
-		ece210_lcd_add_msg("Looping",TERMINAL_ALIGN_CENTER,LCD_COLOR_GREEN);
-		//updateHealthBar();
-		ece210_wait_mSec(300);
+
+		ece210_wait_mSec(250);
 		if(ece210_wireless_data_avaiable()) {
 			uint8_t catchData = ece210_wireless_get();
-			//ece210_lcd_add_msg("Catching Data...",TERMINAL_ALIGN_CENTER,LCD_COLOR_BLUE);
-			//char printStr[16];
-			//sprintf(printStr, "Value is %d", catchData); 
-			//ece210_lcd_add_msg(printStr, TERMINAL_ALIGN_CENTER, LCD_COLOR_RED);
 //***********************************************************************
 //******************************ANALYZE DATA*****************************	
-
-
 			if(catchData < 11) { // < 11 means it is an attack
 					doAttack(weaponList[catchData]);
-					//updateHealthBar();
+
 					ece210_lcd_add_msg(weaponList[catchData].name, TERMINAL_ALIGN_CENTER, LCD_COLOR_RED);
 
 			} else if(catchData == 99) {	//99 indicates game over
@@ -405,12 +409,21 @@ main(void)
 		}
 		
 // ***********************************************************************************
-//																SHIELD CYCLE
+//																COOLDOWN CYCLE
 // ***********************************************************************************
-//		if(tickCheck(shieldRecharge, tickTimer)) {
-//			tickTimer = clock() + tickInterval;
-//		}
-	
+		weapCnt1 += 1;
+		weapCnt2 += 1;
+		weapCnt3 += 1;
+		if(status.disableTime != 0) {
+			status.disableTime -= 1;
+		} else {
+			tickCnt += 1;
+		}
+		
+		if(tickCnt >= tickInterval) {
+			tickCheck();
+			tickCnt = 0;
+		}
 		
 // ***********************************************************************************
 //																ATTACK CYCLE
@@ -420,11 +433,12 @@ main(void)
 			buttons = ece210_buttons_read();
 			
 			if(buttons == LEFT_BUTTON) {
-				if(checkCooldown(endTime1)){
+				if(weapCnt1 >= weaponList[myShip.weapon1].cooldown){
+					weapCnt1 = 0;
 					ece210_lcd_add_msg("FIRED",TERMINAL_ALIGN_CENTER,LCD_COLOR_RED);
-					endTime1 = clock() + weaponCD1;
+
 					// Insert weapon action code
-					if(!ece210_wireless_send(myShip.weapon1)) {
+					while(!ece210_wireless_send(myShip.weapon1)) {
 						ece210_lcd_add_msg("NOT FIRED",TERMINAL_ALIGN_CENTER,LCD_COLOR_RED);
 					}
 				} else {
@@ -432,11 +446,11 @@ main(void)
 				}
 			}
 			if(buttons == UP_BUTTON) {
-				if(checkCooldown(endTime2)){
+				if(weapCnt2 >= weaponList[myShip.weapon2].cooldown){
+					weapCnt2 = 0;
 					ece210_lcd_add_msg("FIRED",TERMINAL_ALIGN_CENTER,LCD_COLOR_RED);
-					endTime2 = clock() + weaponCD2;
 					// Insert weapon action code
-					if(!ece210_wireless_send(myShip.weapon2)) {
+					while(!ece210_wireless_send(myShip.weapon2)) {
 						ece210_lcd_add_msg("NOT FIRED",TERMINAL_ALIGN_CENTER,LCD_COLOR_RED);
 					}
 				} else {
@@ -446,11 +460,11 @@ main(void)
 				
 			if(buttons == RIGHT_BUTTON) {
 
-				if(checkCooldown(endTime3)){
+				if(weapCnt3 >= weaponList[myShip.weapon3].cooldown){
+					weapCnt3 = 0;
 					ece210_lcd_add_msg("FIRED",TERMINAL_ALIGN_CENTER,LCD_COLOR_RED);
-					endTime3 = clock() + weaponCD3;
 					// Insert weapon action code
-					if(!ece210_wireless_send(myShip.weapon3)) {
+					while(!ece210_wireless_send(myShip.weapon3)) {
 						ece210_lcd_add_msg("NOT FIRED",TERMINAL_ALIGN_CENTER,LCD_COLOR_RED);
 					}
 				} else {
